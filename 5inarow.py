@@ -12,21 +12,45 @@ except ImportError:
 
 class Gameboard():
 	def __init__(self, master):
+		self.tile_size = 43
+		self.piece_size = 2
+		self.bg_color = '#AA1337'
+
+		# Main frame.
+		self.main_frame = Frame(master)
+		self.main_frame.pack()
+
+		# Top frame: Everything but the game.
+		self.top_frame = Frame(self.main_frame)
+		self.top_frame.pack()
+
+			# Header message (displays turn, winning message, etc.)
+		self.header = Message(self.top_frame, text='White\'s turn...', width=self.tile_size*13)
+		self.header.pack()
+
+		# Bottom frame that contains the game board.
+		self.bottom_frame = Frame(self.main_frame)
+		self.bottom_frame.pack()
+
+		# Start game.
+		self.initialize_game()
+
+	def initialize_game(self):
 		self.play = True
+		frame = self.bottom_frame
 
-		# Size of a tile.
-		self.ts = 43
-		ts = self.ts
-		bg_color = '#AA1337'
+		# Making lines shorter...
+		ts = self.tile_size 
+		bg_color = self.bg_color
 
-		frame = Frame(master)
-		frame.pack()
-
+		# White starts first.
 		self.player = 'w'
-		self.board = Canvas(frame, bg='#EF16B0', height=ts*13, width=ts*13)
+
+		# Adding the playing board.
+		self.board = Canvas(frame, bg=bg_color, height=ts*13, width=ts*13)
 		self.board.pack()
 
-		# Adding board tiles
+		# Adding board tiles.
 		for row in range(13):
 			for col in range(13):
 				tag = tags='r'+str(row)+'c'+str(col)
@@ -45,34 +69,43 @@ class Gameboard():
 		Draws a player piece at the tile it was clicked at. 
 		Toggles between black and white player tiles.
 		"""
-		size = 2
-		ts = self.ts
-		r = params['coords'][0]
-		c = params['coords'][1]
-		tag = params['tag']
+		if self.play:
+			size = self.piece_size
+			ts = self.tile_size
+			r = params['coords'][0]
+			c = params['coords'][1]
+			tag = params['tag']
 
-		if self.player == 'w':
-			self.board.create_oval(c*ts+size, r*ts+size, c*ts+ts-size, r*ts+ts-size, fill='white', outline='black', tag='w')
-			self.player = 'b'
+			if self.player == 'w':
+				self.board.create_oval(c*ts+size, r*ts+size, c*ts+ts-size, r*ts+ts-size, fill='white', outline='black', tag='w')
+				self.player = 'b'
+				self.header.config(text='Black\'s turn...')
+			else:
+				self.board.create_oval(c*ts+size, r*ts+size, c*ts+ts-size, r*ts+ts-size, fill='black', outline='black', tag='b')
+				self.player = 'w'
+				self.header.config(text='White\'s turn...')
+			# Unbind clicked board with parameters passed in.
+			self.board.tag_unbind(tag, '<Button-1>')
+
+			# Check for a win
+			if (self.check_win(r, c)):
+				# 'Disable' all on_clicks and display end message.
+				self.play = False
+
+				winner = "White" if self.player == 'b' else 'Black'
+				self.header.config(text=winner+' wins!!')
+				
 		else:
-			self.board.create_oval(c*ts+size, r*ts+size, c*ts+ts-size, r*ts+ts-size, fill='black', outline='black', tag='b')
-			self.player = 'w'
-		# Unbind clicked board with parameters passed in.
-		self.board.tag_unbind(tag, '<Button-1>')
-
-		# Check for a win
-		if (self.check_win(r, c)):
-			# Disable all on_clicks and display end message.
-			self.board.tag_unbind('alla', '<Button-1>')
+			#root.destroy();
 			pass
 
 	def check_win(self, r, c):
 		oppo = self.player
 		p = 'w' if self.player == 'b' else 'b'
-		ts = self.ts
+		ts = self.tile_size
 
 		# Horizontal
-		hor = 5
+		hor = 1
 		for i in range(1, 5):
 			try:
 				tags = self.board.gettags(self.board.find_closest(c*ts+ts/2-i*ts, r*ts+ts/2))
@@ -171,12 +204,26 @@ class Gameboard():
 		if (xdiag >= 5):
 			return True
 
-	def play():
-		return self.play
+	def clear_game(self):
+		self.board.delete(ALL)
+		self.board.pack_forget()
+
+	def restart_game(self):
+		self.clear_game()
+		self.initialize_game()
 
 root = Tk()
 root.title('Five-In-A-Row')
 gomoku = Gameboard(root)
 
+# create a toplevel menu
+menubar = Menu(root)
+menubar.add_command(label="Restart", command=gomoku.restart_game)
+
+# display the menu
+root.config(menu=menubar)
+
 root.mainloop()
-root.destroy();
+
+print('Good bye!')
+#root.destroy();
