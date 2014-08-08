@@ -1,0 +1,27 @@
+->winning
+Win			                : max
+2x4inarow 2 blocked	    : max - 2
+2x3inarow 0 blocked	    : max - 4
+
+->setup
+4inline 1 blocked
+3inline 0 blocked
+4inline 0 blocked
+2inline 0 blocked
+
+->blocking
+Block a win		          : max - 1
+Block 4inarow 0 blocked : max - 3
+Block 4inarow 1 blocked
+Block 3inarow 0 blocked 
+
+->useless		            : 0 (don't need to check for)
+4inarow 2 blocked
+3inarow 2 blocked
+2inarow 2 blocked
+1inarow 4 blocked
+
+->heuristics
+proximity to own pieces
+grid formation
+touching pieces
