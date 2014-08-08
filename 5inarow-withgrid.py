@@ -19,6 +19,7 @@ class Gameboard():
 	def __init__(self, master):
 		self.tile_size = 43
 		self.piece_size = 2
+		self.board_len = 15
 		self.bg_color = '#AA1337'
 		self.cur_player = 'w'
 		self.ai = False
@@ -33,7 +34,7 @@ class Gameboard():
 		self.top_frame.pack()
 
 			# Header message (displays turn, winning message, etc.)
-		self.header = Message(self.top_frame, width=self.tile_size*13)
+		self.header = Message(self.top_frame, width=self.tile_size*self.board_len)
 		self.header.pack()
 
 		# Bottom frame that contains the game board.
@@ -48,22 +49,23 @@ class Gameboard():
 		"""
 		self.play = True
 		frame = self.bottom_frame
+		b_len = self.board_len
 
 		# Makes lines shorter...
 		ts = self.tile_size 
 		bg_color = self.bg_color
 
-		# White starts first.
-		self.player = 'w'
-		self.header.config(text='White\'s turn...')
+		# Black starts first.
+		self.player = 'b'
+		self.header.config(text='Black\'s turn...')
 
 		# Adding the playing board.
-		self.board = Canvas(frame, bg=bg_color, height=ts*13, width=ts*13)
+		self.board = Canvas(frame, bg=bg_color, height=ts*b_len, width=ts*b_len)
 		self.board.pack()
 
 		# Adding board tiles.
-		for row in range(13):
-			for col in range(13):
+		for row in range(b_len):
+			for col in range(b_len):
 				tag = tags='r'+str(row)+'c'+str(col)
 
 				self.board.create_rectangle(col*ts, row*ts, col*ts+ts, row*ts+ts, fill=bg_color, outline=bg_color, tags=tag)
@@ -76,7 +78,7 @@ class Gameboard():
 					)
 
 		# If playing with AI, need to run further logic.
-		if self.ai and self.cur_player=='b':
+		if self.ai and self.cur_player=='w':
 			self.play = False
 			self.ai_move()
 
@@ -106,7 +108,7 @@ class Gameboard():
 			self.board.tag_unbind(tag, '<Button-1>')
 
 			# Check for a win
-			if (self.check_win(r, c)):
+			if (self.check_win(self.grid, r, c, 'b' if self.player=='w' else 'w')):
 				self.end_game()	
 			elif self.ai:
 				# Additional steps for AI.
@@ -147,19 +149,17 @@ class Gameboard():
 		winner = "White" if self.player == 'b' else 'Black'
 		self.header.config(text=winner+' wins!!')
 
-	def check_win(self, r, c):
+	def check_win(self, grid, r, c, p):
 		"""
-		Check the board based on last played piece for win.
+		Check the grid for win based on p, the player.
 		"""
-		oppo = self.player
-		p = 'w' if self.player == 'b' else 'b'
 		ts = self.tile_size
 
 		# Horizontal
 		hor = 1
 		for i in range(1, 5):
 			try:
-				if (self.grid[c+i][r] == p):
+				if (grid[c+i][r] == p):
 					hor += 1
 				else:
 					break
@@ -169,7 +169,7 @@ class Gameboard():
 			return True
 		for i in range(1, 5):
 			try:
-				if (self.grid[c-i][r] == p):
+				if (grid[c-i][r] == p):
 					hor += 1
 				else:
 					break
@@ -182,7 +182,7 @@ class Gameboard():
 		ver = 1
 		for i in range(1, 5):
 			try:
-				if (self.grid[c][r+i] == p):
+				if (grid[c][r+i] == p):
 					ver += 1
 				else:
 					break
@@ -192,7 +192,7 @@ class Gameboard():
 			return True
 		for i in range(1, 5):
 			try:
-				if (self.grid[c][r-i] == p):
+				if (grid[c][r-i] == p):
 					ver += 1
 				else:
 					break
@@ -205,7 +205,7 @@ class Gameboard():
 		diag = 1
 		for i in range(1, 5):
 			try:
-				if (self.grid[c+i][r-i] == p):
+				if (grid[c+i][r-i] == p):
 					diag += 1
 				else:
 					break
@@ -215,7 +215,7 @@ class Gameboard():
 			return True
 		for i in range(1, 5):
 			try:
-				if (self.grid[c-i][r+i] == p):
+				if (grid[c-i][r+i] == p):
 					diag += 1
 				else:
 					break
@@ -228,7 +228,7 @@ class Gameboard():
 		xdiag = 1
 		for i in range(1, 5):
 			try:
-				if (self.grid[c+i][r+i] == p):
+				if (grid[c+i][r+i] == p):
 					xdiag += 1
 				else:
 					break
@@ -238,7 +238,7 @@ class Gameboard():
 			return True
 		for i in range(1, 5):
 			try:
-				if (self.grid[c-i][r-i] == p):
+				if (grid[c-i][r-i] == p):
 					xdiag += 1
 				else:
 					break
@@ -283,13 +283,14 @@ class Gameboard():
 		Load the screen for user to choose player color 
 		for gameplay against AI.
 		"""	
+		b_len = self.board_len
 		self.header.config(text="Pick your color:")
 
 		# Drawing choices
 		ts = self.tile_size
 		self.board.pack()
-		b_button = self.board.create_rectangle(0, 0, ts*13, ts*13/2, fill='black', outline='black')
-		w_button = self.board.create_rectangle(0, ts*13/2, ts*13, ts*13, fill='white', outline='white')
+		b_button = self.board.create_rectangle(0, 0, ts*b_len, ts*b_len/2, fill='black', outline='black')
+		w_button = self.board.create_rectangle(0, ts*b_len/2, ts*b_len, ts*b_len, fill='white', outline='white')
 
 		self.board.tag_bind(b_button, '<Button-1>', lambda event: self.set_cur_player('b'))
 		self.board.tag_bind(w_button, '<Button-1>', lambda event: self.set_cur_player('w'))
@@ -307,36 +308,75 @@ class Gameboard():
 		Logic for CPU implemented here.
 		"""
 		#time.sleep(1.5)
-
-		me = self.cur_player
 		ts = self.tile_size
 
 		while True:
-			row = random.randint(0, 12)
-			col = random.randint(0, 12)
+			row = random.randint(0, self.board_len-1)
+			col = random.randint(0, self.board_len-1)
 			if (self.grid[col][row] == '-'):
 				break
 		tag = 'r'+str(row)+'c'+str(col)
+
+		test = [row[:] for row in self.grid]
+		self.minimax(2, col, row, test, True)
 
 		self.ai_click({'coords':[row, col], 'tag':tag})
 		self.play = True
 
 		# Check for a win. Putting it here so that self.play will be set to False
-		if (self.check_win(row, col)):
+		if (self.check_win(self.grid, row, col, 'b' if self.player=='w' else 'w')):
 			self.end_game()
 
 	def create_grid(self):
 		"""
-		Creates a 13x13 array initialized with '-'.
+		Creates a NxN array initialized with '-'.
 		This grid is used to store the game state.
 		"""
 		grid = []
-		#grid = [grid.append([grid[r].append(['-'])] for r in range(13)) for c in range(13)]
-		for r in range(13):
+		for r in range(self.board_len):
 			grid.append([])
-			for c in range(13):
+			for c in range(self.board_len):
 				grid[r].append('-')
 		return grid
+
+	def minimax(self, depth, x, y, grid, do_max):
+		"""
+		Minimax function.
+		"""
+		human = self.cur_player
+		ai = self.player
+		best = float('-inf') if do_max else float('inf')
+		if depth > 0:
+			for i in range(self.board_len):
+				for j in range(self.board_len):
+					if grid[i][j] == '-':
+						test = [row[:] for row in grid]
+						test[i][j] = ai if do_max else human
+						score = self.minimax(depth-1, i, j, test, not do_max)
+						# Updating best scores based on min/maxing.
+						if do_max and score > best:
+							best = score
+						elif score < best:
+							best = score
+		else:
+			# If at leaf, return evaluation of score.
+			score = 0;
+			# Do logic for score here.
+			# e.g. check_4inarow
+
+			return score
+
+		return best
+
+class Node():
+	def __init__(self, x, y):
+		self.x = x
+		self.y = y
+		self.score = 0
+		self.children = []
+
+	def add(self, child):
+		self.children.append(child)
 
 
 def get_color():
