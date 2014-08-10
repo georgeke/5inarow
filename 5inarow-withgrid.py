@@ -108,8 +108,8 @@ class Gameboard():
 			self.board.tag_unbind(tag, '<Button-1>')
 
 			# Check for a win
-			if (self.check_win(self.grid, r, c, 'b' if self.player=='w' else 'w')):
-				self.end_game()	
+			if (self.check_xinarow(5, self.grid, {'r':r, 'c':c}, 'b' if self.player=='w' else 'w')):
+				self.end_game()
 			elif self.ai:
 				# Additional steps for AI.
 				self.play = False
@@ -149,15 +149,18 @@ class Gameboard():
 		winner = "White" if self.player == 'b' else 'Black'
 		self.header.config(text=winner+' wins!!')
 
-	def check_win(self, grid, r, c, p):
+	def check_xinarow(self, x, grid, coords, p):
 		"""
-		Check the grid for win based on p, the player.
+		Check the grid for x in a row pieces based on p, the player.
+		If there are x in a row, returns the number of sides blocked.
+		Else, returns -1.
 		"""
-		ts = self.tile_size
-
+		c = coords['c']
+		r = coords['r']
 		# Horizontal
 		hor = 1
-		for i in range(1, 5):
+		end_1 = 
+		for i in range(1, x):
 			try:
 				if (grid[c+i][r] == p):
 					hor += 1
@@ -165,9 +168,9 @@ class Gameboard():
 					break
 			except IndexError:
 				pass
-		if (hor >= 5):
+		if (hor >= x):
 			return True
-		for i in range(1, 5):
+		for i in range(1, x):
 			try:
 				if (grid[c-i][r] == p):
 					hor += 1
@@ -175,12 +178,12 @@ class Gameboard():
 					break
 			except IndexError:
 				pass
-		if (hor >= 5):
+		if (hor >= x):
 			return True
 
 		# Vertical
 		ver = 1
-		for i in range(1, 5):
+		for i in range(1, x):
 			try:
 				if (grid[c][r+i] == p):
 					ver += 1
@@ -188,9 +191,9 @@ class Gameboard():
 					break
 			except IndexError:
 				pass
-		if (ver >= 5):
+		if (ver >= x):
 			return True
-		for i in range(1, 5):
+		for i in range(1, x):
 			try:
 				if (grid[c][r-i] == p):
 					ver += 1
@@ -198,12 +201,12 @@ class Gameboard():
 					break
 			except IndexError:
 				pass
-		if (ver >= 5):
+		if (ver >= x):
 			return True
 
 		# Forward Diagonal
 		diag = 1
-		for i in range(1, 5):
+		for i in range(1, x):
 			try:
 				if (grid[c+i][r-i] == p):
 					diag += 1
@@ -211,9 +214,9 @@ class Gameboard():
 					break
 			except IndexError:
 				pass
-		if (diag >= 5):
+		if (diag >= x):
 			return True
-		for i in range(1, 5):
+		for i in range(1, x):
 			try:
 				if (grid[c-i][r+i] == p):
 					diag += 1
@@ -221,12 +224,12 @@ class Gameboard():
 					break
 			except IndexError:
 				pass
-		if (diag >= 5):
+		if (diag >= x):
 			return True
 
 		# Back Diagonal
 		xdiag = 1
-		for i in range(1, 5):
+		for i in range(1, x):
 			try:
 				if (grid[c+i][r+i] == p):
 					xdiag += 1
@@ -234,9 +237,9 @@ class Gameboard():
 					break
 			except IndexError:
 				pass
-		if (xdiag >= 5):
+		if (xdiag >= x):
 			return True
-		for i in range(1, 5):
+		for i in range(1, x):
 			try:
 				if (grid[c-i][r-i] == p):
 					xdiag += 1
@@ -244,8 +247,10 @@ class Gameboard():
 					break
 			except IndexError:
 				pass
-		if (xdiag >= 5):
-			return True		
+		if (xdiag >= x):
+			return True
+
+		return -1	
 
 	def clear_game(self):
 		"""
@@ -318,13 +323,13 @@ class Gameboard():
 		tag = 'r'+str(row)+'c'+str(col)
 
 		test = [row[:] for row in self.grid]
-		self.minimax(2, col, row, test, True)
+		self.minimax(2, {'c':col, 'r':row}, test, True)
 
 		self.ai_click({'coords':[row, col], 'tag':tag})
 		self.play = True
 
 		# Check for a win. Putting it here so that self.play will be set to False
-		if (self.check_win(self.grid, row, col, 'b' if self.player=='w' else 'w')):
+		if (self.check_xinarow(5, self.grid, {'r':row, 'c':col}, 'b' if self.player=='w' else 'w')):
 			self.end_game()
 
 	def create_grid(self):
@@ -339,7 +344,7 @@ class Gameboard():
 				grid[r].append('-')
 		return grid
 
-	def minimax(self, depth, x, y, grid, do_max):
+	def minimax(self, depth, coords, grid, do_max):
 		"""
 		Minimax function.
 		"""
@@ -359,10 +364,12 @@ class Gameboard():
 						elif score < best:
 							best = score
 		else:
+			r = coords['r']
+			c = coords['c']
 			# If at leaf, return evaluation of score.
 			score = 0;
 			# Do logic for score here.
-			# e.g. check_4inarow
+			if 
 
 			return score
 
