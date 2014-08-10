@@ -108,7 +108,8 @@ class Gameboard():
 			self.board.tag_unbind(tag, '<Button-1>')
 
 			# Check for a win
-			if (self.check_xinarow(5, self.grid, {'r':r, 'c':c}, 'b' if self.player=='w' else 'w')):
+			if (self.check_xinarow(5, self.grid, {'r':r, 'c':c}, 'b' if self.player=='w' else 'w') >= 0):
+				print(self.check_xinarow(5, self.grid, {'r':r, 'c':c}, 'b' if self.player=='w' else 'w'))
 				self.end_game()
 			elif self.ai:
 				# Additional steps for AI.
@@ -155,102 +156,96 @@ class Gameboard():
 		If there are x in a row, returns the number of sides blocked.
 		Else, returns -1.
 		"""
+		hor = self.check_xdir(x, grid, coords, {'mc':1, 'mr':0}, p)
+		if hor>=0:
+			return hor
+
+		ver = self.check_xdir(x, grid, coords, {'mc':0, 'mr':1}, p)
+		if ver>=0:
+			return ver
+
+		diag = self.check_xdir(x, grid, coords, {'mc':1, 'mr':-1}, p)
+		if diag>=0:
+			return diag
+
+		xdiag = self.check_xdir(x, grid, coords, {'mc':1, 'mr':1}, p)
+		if xdiag>=0:
+			return xdiag
+
+		return -1
+
+	def check_each_xinarow(self, x, grid, coords, p):
+		"""
+		Just like check_xinarow except each direction is always checked.
+		Function returns a dictionary of blocks for each direction.
+		"""
+		results = {
+			'hor':self.check_xdir(x, grid, coords, {'mc':1, 'mr':0}, p),
+			'ver':self.check_xdir(x, grid, coords, {'mc':0, 'mr':1}, p),
+			'diag':self.check_xdir(x, grid, coords, {'mc':1, 'mr':-1}, p),
+			'xdiag':self.check_xdir(x, grid, coords, {'mc':1, 'mr':1}, p)
+		}
+
+		return results
+
+	def check_xdir(self, x, grid, coords, modifiers, p):
+		"""
+		Checks a certain direction for x in a row based on modifiers.
+		Returns the number of sides blocked if x in a row, else -1.
+		"""
+		count = 1
 		c = coords['c']
 		r = coords['r']
-		# Horizontal
-		hor = 1
-		end_1 = 
+		mc = modifiers['mc']
+		mr = modifiers['mr']
+		# These represent the pieces that are the bounds of the x in a row line
+		end_upper = {'c':c+mc, 'r':r+mr}
+		end_lower = {'c':c-mc, 'r':r-mr}
 		for i in range(1, x):
 			try:
-				if (grid[c+i][r] == p):
-					hor += 1
+				if (grid[c+i*mc][r+i*mr] == p):
+					end_upper['c'], end_upper['r'] = c+i*mc+mc, r+i*mr+mr
+					count += 1
 				else:
 					break
 			except IndexError:
 				pass
-		if (hor >= x):
-			return True
+		if (count >= x):
+			return self.num_blocks(end_upper, end_lower)
 		for i in range(1, x):
 			try:
-				if (grid[c-i][r] == p):
-					hor += 1
+				if (grid[c-i*mc][r-i*mr] == p):
+					end_lower['c'], end_lower['r'] = c-i*mc-mc, r-i*mr-mr
+					count += 1
 				else:
 					break
 			except IndexError:
 				pass
-		if (hor >= x):
-			return True
+		if (count >= x):
+			return self.num_blocks(end_upper, end_lower)
 
-		# Vertical
-		ver = 1
-		for i in range(1, x):
-			try:
-				if (grid[c][r+i] == p):
-					ver += 1
-				else:
-					break
-			except IndexError:
-				pass
-		if (ver >= x):
-			return True
-		for i in range(1, x):
-			try:
-				if (grid[c][r-i] == p):
-					ver += 1
-				else:
-					break
-			except IndexError:
-				pass
-		if (ver >= x):
-			return True
+		return -1
 
-		# Forward Diagonal
-		diag = 1
-		for i in range(1, x):
-			try:
-				if (grid[c+i][r-i] == p):
-					diag += 1
-				else:
-					break
-			except IndexError:
-				pass
-		if (diag >= x):
-			return True
-		for i in range(1, x):
-			try:
-				if (grid[c-i][r+i] == p):
-					diag += 1
-				else:
-					break
-			except IndexError:
-				pass
-		if (diag >= x):
-			return True
-
-		# Back Diagonal
-		xdiag = 1
-		for i in range(1, x):
-			try:
-				if (grid[c+i][r+i] == p):
-					xdiag += 1
-				else:
-					break
-			except IndexError:
-				pass
-		if (xdiag >= x):
-			return True
-		for i in range(1, x):
-			try:
-				if (grid[c-i][r-i] == p):
-					xdiag += 1
-				else:
-					break
-			except IndexError:
-				pass
-		if (xdiag >= x):
-			return True
-
-		return -1	
+	def num_blocks(self, upper, lower):
+		"""
+		Returns the number of blockages based on end points of x in a row.
+		"""
+		block = 0;
+		try:
+			if upper['c'] < 0 or upper['r'] < 0:
+				block += 1
+			elif self.grid[upper['c']][upper['r']] != '-':
+				block += 1
+		except IndexError:
+			pass
+		try:
+			if lower['c'] < 0 or lower['r'] < 0:
+				block += 1
+			elif self.grid[lower['c']][lower['r']] != '-':
+				block += 1
+		except IndexError:
+			pass
+		return block
 
 	def clear_game(self):
 		"""
@@ -322,14 +317,14 @@ class Gameboard():
 				break
 		tag = 'r'+str(row)+'c'+str(col)
 
-		test = [row[:] for row in self.grid]
-		self.minimax(2, {'c':col, 'r':row}, test, True)
+		#test = [row[:] for row in self.grid]
+		#self.minimax(2, {'c':col, 'r':row}, test, True)
 
 		self.ai_click({'coords':[row, col], 'tag':tag})
 		self.play = True
 
 		# Check for a win. Putting it here so that self.play will be set to False
-		if (self.check_xinarow(5, self.grid, {'r':row, 'c':col}, 'b' if self.player=='w' else 'w')):
+		if (self.check_xinarow(5, self.grid, {'r':row, 'c':col}, 'b' if self.player=='w' else 'w') >= 0):
 			self.end_game()
 
 	def create_grid(self):
@@ -357,7 +352,7 @@ class Gameboard():
 					if grid[i][j] == '-':
 						test = [row[:] for row in grid]
 						test[i][j] = ai if do_max else human
-						score = self.minimax(depth-1, i, j, test, not do_max)
+						score = self.minimax(depth-1, {'c':i, 'r':j}, test, not do_max)
 						# Updating best scores based on min/maxing.
 						if do_max and score > best:
 							best = score
@@ -369,7 +364,18 @@ class Gameboard():
 			# If at leaf, return evaluation of score.
 			score = 0;
 			# Do logic for score here.
-			if 
+			me = ai if do_max else human
+			you = human if do_max else ai
+
+			win = self.check_xinarow(5, self.grid, {'r':r, 'c':c}, p)
+
+			win_2x4inarow = self.check_each_xinarow(4, self.grid, {'r':r, 'c':c}, p)
+
+			win_4inarow = self.check_xinarow(4, self.grid, {'r':r, 'c':c}, p)
+
+			set_4inarow = self.check_xinarow(4, self.grid, {'r':r, 'c':c}, p)
+
+			win_2x3inarow = self.check_each_xinarow(3, self.grid, {'r':r, 'c':c}, p)
 
 			return score
 

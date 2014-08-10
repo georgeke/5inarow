@@ -1,7 +1,8 @@
 ->winning
-Win			                : max
-2x4inarow 2 blocked	    : max - 2
-2x3inarow 0 blocked	    : max - 4
+Win
+2x4inarow 2 blocked
+4inarow 0 blocked
+2x3inarow 0 blocked
 
 ->setup
 4inline 1 blocked
@@ -9,13 +10,7 @@ Win			                : max
 4inline 0 blocked
 2inline 0 blocked
 
-->blocking
-Block a win		          : max - 1
-Block 4inarow 0 blocked : max - 3
-Block 4inarow 1 blocked
-Block 3inarow 0 blocked 
-
-->useless		            : 0 (don't need to check for)
+->useless
 4inarow 2 blocked
 3inarow 2 blocked
 2inarow 2 blocked
@@ -25,3 +20,20 @@ Block 3inarow 0 blocked
 proximity to own pieces
 grid formation
 touching pieces
+-------------------------
+
+
+--->ORDER:
+WIN X: the number of your turns it will take to win including this turn
+WIN 1: Win
+WIN 2: 2x4inarow 2 blocked
+WIN 2: 4inarow 0 blocked
+WIN 3: 2x3inarow 0 blocked
+
+
+Finally, the scoring system:
+1. Check each of the 4 win scenarios. If they are satisfied, return with appropriate score.
+2. After each check, also check for opponent piece placed there (i.e. check for block). Return if it is a block.
+3. If no return, check each setup and add score appropriately.
+4. For each check, also check block (opponent piece place there).
+5. Return total score.
