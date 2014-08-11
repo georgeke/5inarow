@@ -43,3 +43,7 @@ Finally, the scoring system:
 Optimization ideas:
 -Check number of pieces on board for each player. Only check if minumum amount is met.
 -Somehow avoid areas of the board that are obviously not useful.
+
+
+Scoring system needs to change.
+AI is saying, bro in 3 turns I can block a win so ill let them setup instead of cutting them off now and scoring later.

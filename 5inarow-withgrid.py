@@ -81,6 +81,9 @@ class Gameboard():
 		if self.ai and self.cur_player=='w':
 			self.play = False
 			self.ai_move()
+		if self.ai:
+			# Set up a grid tracking areas on the board that are worth checking by the AI.
+			self.target_grid = [row[:] for row in self.grid]
 
 	def on_click(self, event, params):
 		"""
@@ -111,7 +114,9 @@ class Gameboard():
 			if (self.check_xinarow(5, self.grid, {'r':r, 'c':c}, 'b' if self.player=='w' else 'w') >= 0):
 				self.end_game()
 			elif self.ai:
-				# Additional steps for AI.
+				# Update 'worth checking' grid with spaces around placed piece.
+				self.add_target(self.target_grid, {'r':r, 'c':c})
+				# AI goes after you go.
 				self.play = False
 				self.ai_move()
 		else:
@@ -136,6 +141,7 @@ class Gameboard():
 		else:
 			self.board.create_oval(c*ts+size, r*ts+size, c*ts+ts-size, r*ts+ts-size, fill='black', outline='black', tag='b')
 			self.header.config(text='White\'s turn...')
+		self.add_target(self.target_grid, {'r':r, 'c':c})
 		self.grid[c][r] = self.player
 		self.player = 'w' if self.player == 'b' else 'b'
 		# Unbind clicked board with parameters passed in.
@@ -314,6 +320,8 @@ class Gameboard():
 		Clears grid state, all pieces, and game board.
 		"""
 		self.grid = self.create_grid()
+		if self.ai:
+			self.target_grid = [row[:] for row in self.grid]
 		self.board.delete(ALL)
 		self.board.pack_forget()
 
@@ -386,11 +394,13 @@ class Gameboard():
 		result = self.minimax(3, {'c':0, 'r':0}, test, True)
 		row = result['coords']['r']
 		col = result['coords']['c']
-		print('Score: ' + result['score'])
+		print('Score: ' + str(result['score']))
 
 		tag = 'r'+str(row)+'c'+str(col)
 		self.ai_click({'coords':{'c':col, 'r':row}, 'tag':tag})
 		self.play = True
+
+		self.print_grid(self.target_grid)
 
 		# Check for a win. Putting it here so that self.play will be set to False
 		if (self.check_xinarow(5, self.grid, {'r':row, 'c':col}, 'b' if self.player=='w' else 'w') >= 0):
@@ -408,6 +418,22 @@ class Gameboard():
 				grid[r].append('-')
 		return grid
 
+	def add_target(self, grid, coords):
+		"""
+		Changes grid contents of every space in a 1 grid radius around coords
+		into 'X' for AI use.
+		"""
+		r = coords['r']
+		c = coords['c']
+
+		for i in range(-1, 2):
+			for j in range(-1, 2):
+				try:
+					if (c+i>=0 and r+j>=0):
+						grid[c+i][r+j] = 'X'
+				except IndexError:
+					pass
+
 	def minimax(self, depth, coords, grid, do_max):
 		"""
 		Minimax function. Returns the best (min or max) score as well as
@@ -416,10 +442,12 @@ class Gameboard():
 		human = self.cur_player
 		ai = self.player
 		best = float('-inf') if do_max else float('inf')
+		middle= math.floor(self.board_len/2)
+		best_coords = {'r':middle, 'c':middle}
 		if depth > 0:
 			for i in range(self.board_len):
 				for j in range(self.board_len):
-					if grid[i][j] == '-':
+					if grid[i][j]=='-' and self.target_grid[i][j]=='X':
 						test = [row[:] for row in grid]
 						test[i][j] = ai if do_max else human
 
@@ -428,10 +456,11 @@ class Gameboard():
 						# Updating best scores based on min/maxing.
 						if do_max and score > best:
 							best = score
-							best_coords = {'r':result['coords']['r'], 'c':result['coords']['c']}
+							print(str(result['coords']['c']) + " " + str(result['coords']['r']) + " " + str(score))
+							best_coords = {'r':j, 'c':i}
 						if not do_max and score < best:
 							best = score
-							best_coords = {'r':result['coords']['r'], 'c':result['coords']['c']}
+							best_coords = {'r':j, 'c':i}
 		else:
 			r = coords['r']
 			c = coords['c']
@@ -529,6 +558,15 @@ class Gameboard():
 			result['score'] = score
 			return result
 		return {'score':best, 'coords':best_coords}
+
+	def print_grid(self, grid):
+		"""
+		Used for testing. Prints grid contents for checking augmentation.
+		""" 
+		for i in range(len(grid)):
+			for j in range(len(grid[i])):
+				print(grid[i][j] + " ", end="")
+			print("\n") 
 
 class Node():
 	def __init__(self, x, y):
