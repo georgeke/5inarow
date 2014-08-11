@@ -45,7 +45,7 @@ class Gameboard():
 		self.initialize_game()
 	def initialize_game(self):
 		"""
-		Shows game board and assigns on_clicks.
+		Shows game board and assigns on clicks.
 		"""
 		self.play = True
 		frame = self.bottom_frame
@@ -72,9 +72,9 @@ class Gameboard():
 				self.board.create_line(col*ts+ts/2, row*ts, col*ts+ts/2, row*ts+ts, fill='gray', tags=tag)
 				self.board.create_line(col*ts, row*ts+ts/2, col*ts+ts, row*ts+ts/2, fill='gray', tags=tag)
 
-				# Bind all the items added above to a lambda calling on_click
+				# Bind all the items added above to a lambda calling on click
 				self.board.tag_bind(
-					tag, '<Button-1>', lambda event, params={'coords':[row, col], 'tag':tag}: self.on_click(event, params)
+					tag, '<Button-1>', lambda event, params={'coords':{'r':row, 'c':col}, 'tag':tag}: self.on_click(event, params)
 					)
 
 		# If playing with AI, need to run further logic.
@@ -92,8 +92,8 @@ class Gameboard():
 		if self.play:
 			size = self.piece_size
 			ts = self.tile_size
-			r = params['coords'][0]
-			c = params['coords'][1]
+			r = params['coords']['r']
+			c = params['coords']['c']
 			tag = params['tag']
 
 			if self.player == 'w':
@@ -109,7 +109,6 @@ class Gameboard():
 
 			# Check for a win
 			if (self.check_xinarow(5, self.grid, {'r':r, 'c':c}, 'b' if self.player=='w' else 'w') >= 0):
-				print(self.check_xinarow(5, self.grid, {'r':r, 'c':c}, 'b' if self.player=='w' else 'w'))
 				self.end_game()
 			elif self.ai:
 				# Additional steps for AI.
@@ -121,14 +120,14 @@ class Gameboard():
 
 	def ai_click(self, params):
 		"""
-		Very similar logic to on_click.
+		Very similar logic to on click.
 		Putting this as a seperate function to avoid a spaghetti of toggles
 		to switch between AI and player turn.
 		"""
 		size = self.piece_size
 		ts = self.tile_size
-		r = params['coords'][0]
-		c = params['coords'][1]
+		r = params['coords']['r']
+		c = params['coords']['c']
 		tag = params['tag']
 
 		if self.player == 'w':
@@ -144,7 +143,7 @@ class Gameboard():
 
 	def end_game(self):
 		"""
-		'Disable' all on_clicks and display end message.
+		'Disable' all on clicks and display end message.
 		"""
 		self.play = False
 		winner = "White" if self.player == 'b' else 'Black'
@@ -174,19 +173,78 @@ class Gameboard():
 
 		return -1
 
-	def check_each_xinarow(self, x, grid, coords, p):
+	def check_2x4inarow(self, grid, coords, p):
 		"""
-		Just like check_xinarow except each direction is always checked.
-		Function returns a dictionary of blocks for each direction.
+		Checks if the pieces plays by coords will create at least a double 4 in a row
+		with each 4 in a row having only 1 side blocked.
 		"""
-		results = {
-			'hor':self.check_xdir(x, grid, coords, {'mc':1, 'mr':0}, p),
-			'ver':self.check_xdir(x, grid, coords, {'mc':0, 'mr':1}, p),
-			'diag':self.check_xdir(x, grid, coords, {'mc':1, 'mr':-1}, p),
-			'xdiag':self.check_xdir(x, grid, coords, {'mc':1, 'mr':1}, p)
-		}
+		results = [
+			self.check_xdir(4, grid, coords, {'mc':1, 'mr':0}, p),
+			self.check_xdir(4, grid, coords, {'mc':0, 'mr':1}, p),
+			self.check_xdir(4, grid, coords, {'mc':1, 'mr':-1}, p),
+			self.check_xdir(4, grid, coords, {'mc':1, 'mr':1}, p)
+		]
+		num_4inarow = 0
 
-		return results
+		# Checking number of 4inarows with 1 side blocked.
+		for i in range(4):
+			if results[i] == 1:
+				num_4inarow += 1
+		if num_4inarow>=2:
+			return True
+		else:
+			return False
+
+	def check_2x3inarow(self, grid, coords, p):
+		"""
+		Checks if the pieces plays by coords will create at least a double 3 in a row
+		with each 3 in a row having no sides blocked.
+		"""
+		results = [
+			self.check_xdir(3, grid, coords, {'mc':1, 'mr':0}, p),
+			self.check_xdir(3, grid, coords, {'mc':0, 'mr':1}, p),
+			self.check_xdir(3, grid, coords, {'mc':1, 'mr':-1}, p),
+			self.check_xdir(3, grid, coords, {'mc':1, 'mr':1}, p)
+		]
+		num_3inarow = 0
+
+		for i in range(4):
+			if results[i] == 0:
+				num_3inarow += 1
+		if num_3inarow>=2:
+			return True
+		else:
+			return False
+
+	def check_3and4inarow(self, grid, coords, p):
+		"""
+		Checks if the pieces plays by coords will create at least one 4inarow with
+		one side blocked, and at least one 3inarow with no sides blocked.
+		"""
+		results_4 = [
+			self.check_xdir(4, grid, coords, {'mc':1, 'mr':0}, p),
+			self.check_xdir(4, grid, coords, {'mc':0, 'mr':1}, p),
+			self.check_xdir(4, grid, coords, {'mc':1, 'mr':-1}, p),
+			self.check_xdir(4, grid, coords, {'mc':1, 'mr':1}, p)
+		]
+		results_3 = [
+			self.check_xdir(3, grid, coords, {'mc':1, 'mr':0}, p),
+			self.check_xdir(3, grid, coords, {'mc':0, 'mr':1}, p),
+			self.check_xdir(3, grid, coords, {'mc':1, 'mr':-1}, p),
+			self.check_xdir(3, grid, coords, {'mc':1, 'mr':1}, p)
+		]
+		num_3inarow = 0
+		num_4inarow = 0
+
+		for i in range(4):
+			if results_3[i] == 0:
+				num_3inarow += 1
+			if results_4[i] == 1:
+				num_4inarow += 1
+		if num_3inarow>=1 and num_4inarow>=1:
+			return True
+		else:
+			return False
 
 	def check_xdir(self, x, grid, coords, modifiers, p):
 		"""
@@ -203,6 +261,8 @@ class Gameboard():
 		end_lower = {'c':c-mc, 'r':r-mr}
 		for i in range(1, x):
 			try:
+				if c+i*mc<0 or r+i*mr<0:
+					break
 				if (grid[c+i*mc][r+i*mr] == p):
 					end_upper['c'], end_upper['r'] = c+i*mc+mc, r+i*mr+mr
 					count += 1
@@ -214,6 +274,8 @@ class Gameboard():
 			return self.num_blocks(end_upper, end_lower)
 		for i in range(1, x):
 			try:
+				if c-i*mc<0 or r-i*mr<0:
+					break
 				if (grid[c-i*mc][r-i*mr] == p):
 					end_lower['c'], end_lower['r'] = c-i*mc-mc, r-i*mr-mr
 					count += 1
@@ -310,17 +372,24 @@ class Gameboard():
 		#time.sleep(1.5)
 		ts = self.tile_size
 
+		# Random placement.
+		"""
 		while True:
 			row = random.randint(0, self.board_len-1)
 			col = random.randint(0, self.board_len-1)
 			if (self.grid[col][row] == '-'):
 				break
+		"""
+
+		# Minimax algorithm.
+		test = [row[:] for row in self.grid]
+		result = self.minimax(3, {'c':0, 'r':0}, test, True)
+		row = result['coords']['r']
+		col = result['coords']['c']
+		print('Score: ' + result['score'])
+
 		tag = 'r'+str(row)+'c'+str(col)
-
-		#test = [row[:] for row in self.grid]
-		#self.minimax(2, {'c':col, 'r':row}, test, True)
-
-		self.ai_click({'coords':[row, col], 'tag':tag})
+		self.ai_click({'coords':{'c':col, 'r':row}, 'tag':tag})
 		self.play = True
 
 		# Check for a win. Putting it here so that self.play will be set to False
@@ -341,7 +410,8 @@ class Gameboard():
 
 	def minimax(self, depth, coords, grid, do_max):
 		"""
-		Minimax function.
+		Minimax function. Returns the best (min or max) score as well as
+		the coordinates of the placement.
 		"""
 		human = self.cur_player
 		ai = self.player
@@ -352,34 +422,113 @@ class Gameboard():
 					if grid[i][j] == '-':
 						test = [row[:] for row in grid]
 						test[i][j] = ai if do_max else human
-						score = self.minimax(depth-1, {'c':i, 'r':j}, test, not do_max)
+
+						result = self.minimax(depth-1, {'c':i, 'r':j}, test, not do_max)
+						score = result['score']
 						# Updating best scores based on min/maxing.
 						if do_max and score > best:
 							best = score
-						elif score < best:
+							best_coords = {'r':result['coords']['r'], 'c':result['coords']['c']}
+						if not do_max and score < best:
 							best = score
+							best_coords = {'r':result['coords']['r'], 'c':result['coords']['c']}
 		else:
 			r = coords['r']
 			c = coords['c']
 			# If at leaf, return evaluation of score.
-			score = 0;
-			# Do logic for score here.
-			me = ai if do_max else human
-			you = human if do_max else ai
+			score = 0;		
+			result = {'score':score, 'coords':{'c':c, 'r':r}}
+			# 'me' represents the person playing the piece. 'you' represents their opponent.
+			# This is based on do_max because if this node is maximizing, the parent node
+			# will be minimizing. Since the minimizer is the human, the logic is that way.
+			me = human if do_max else ai
+			you = ai if do_max else human
+			# Instant returns.
+			# WIN X: the number of your turns it will take to win including this turn
+			# WIN 1: Win
+			# WIN 2: 2x4inarow 2 blocked
+			# WIN 2: 4inarow 0 blocked
+			# WIN 2or3: 3and4inarow 1 blocked
+			# WIN 3: 2x3inarow 0 blocked
+			win_5inarow = self.check_xinarow(5, self.grid, {'r':r, 'c':c}, me)
+			if win_5inarow>=0:
+				result['score'] = 10000
+				return result
+			block_5inarow = self.check_xinarow(5, self.grid, {'r':r, 'c':c}, you)
+			if block_5inarow>=0:
+				result['score'] = 9999
+				return result
 
-			win = self.check_xinarow(5, self.grid, {'r':r, 'c':c}, p)
+			win_2x4inarow = self.check_2x4inarow(self.grid, {'r':r, 'c':c}, me)
+			if win_2x4inarow:
+				result['score'] = 9998
+				return result
+			block_2x4inarow = self.check_2x4inarow(self.grid, {'r':r, 'c':c}, you)
+			if block_2x4inarow:
+				result['score'] = 9997
+				return result
 
-			win_2x4inarow = self.check_each_xinarow(4, self.grid, {'r':r, 'c':c}, p)
+			win_4inarow = self.check_xinarow(4, self.grid, {'r':r, 'c':c}, me)
+			if win_4inarow==0:
+				result['score'] = 9996
+				return result
+			block_4inarow = self.check_xinarow(4, self.grid, {'r':r, 'c':c}, you)
+			if block_4inarow==0:
+				result['score'] = 9995
+				return result
 
-			win_4inarow = self.check_xinarow(4, self.grid, {'r':r, 'c':c}, p)
+			win_3and4inarow = self.check_3and4inarow(self.grid, {'r':r, 'c':c}, me)
+			if win_3and4inarow:
+				result['score'] = 9994
+				return result
+			block_3and4inarow = self.check_3and4inarow(self.grid, {'r':r, 'c':c}, you)
+			if block_3and4inarow:
+				result['score'] = 9993
+				return result
 
-			set_4inarow = self.check_xinarow(4, self.grid, {'r':r, 'c':c}, p)
+			win_2x3inarow = self.check_2x3inarow(self.grid, {'r':r, 'c':c}, me)
+			if win_2x3inarow:
+				result['score'] = 9992
+				return result
+			block_2x3inarow = self.check_2x3inarow(self.grid, {'r':r, 'c':c}, you)
+			if block_2x3inarow:
+				result['score'] = 9991
+				return result
 
-			win_2x3inarow = self.check_each_xinarow(3, self.grid, {'r':r, 'c':c}, p)
+			# If no return check each setup possiblity as well as their corresponding block
+			# opportunity and sum them.
+			set_4inarow = self.check_xinarow(4, self.grid, {'r':r, 'c':c}, me)
+			if set_4inarow==1:
+				score += 4
+			block_set_4inarow = self.check_xinarow(4, self.grid, {'r':r, 'c':c}, you)
+			if block_set_4inarow==1:
+				score += 5
 
-			return score
+			set_3inarow = self.check_xinarow(3, self.grid, {'r':r, 'c':c}, me)
+			if set_3inarow==0:
+				score += 10
+			elif set_3inarow==1:
+				score += 4
+			block_set_3inarow = self.check_xinarow(3, self.grid, {'r':r, 'c':c}, you)
+			if block_set_3inarow==0:
+				score += 8
+			elif block_set_3inarow==1:
+				score += 3
 
-		return best
+			set_2inarow = self.check_xinarow(2, self.grid, {'r':r, 'c':c}, me)
+			if set_2inarow==0:
+				score += 2
+			elif set_2inarow==1:
+				score += 1
+			block_set_2inarow = self.check_xinarow(2, self.grid, {'r':r, 'c':c}, you)
+			if block_set_2inarow==0:
+				score += 2
+			elif block_set_2inarow==1:
+				score += 0.5
+
+			result['score'] = score
+			return result
+		return {'score':best, 'coords':best_coords}
 
 class Node():
 	def __init__(self, x, y):

@@ -2,12 +2,12 @@
 Win
 2x4inarow 2 blocked
 4inarow 0 blocked
+3and4inarow 1 blocked
 2x3inarow 0 blocked
 
 ->setup
 4inline 1 blocked
 3inline 0 blocked
-4inline 0 blocked
 2inline 0 blocked
 
 ->useless
@@ -28,6 +28,7 @@ WIN X: the number of your turns it will take to win including this turn
 WIN 1: Win
 WIN 2: 2x4inarow 2 blocked
 WIN 2: 4inarow 0 blocked
+WIN 2or3: 3and4inarow 1 blocked
 WIN 3: 2x3inarow 0 blocked
 
 
@@ -37,3 +38,8 @@ Finally, the scoring system:
 3. If no return, check each setup and add score appropriately.
 4. For each check, also check block (opponent piece place there).
 5. Return total score.
+
+
+Optimization ideas:
+-Check number of pieces on board for each player. Only check if minumum amount is met.
+-Somehow avoid areas of the board that are obviously not useful.
