@@ -391,7 +391,7 @@ class Gameboard():
 
 		# Minimax algorithm.
 		test = [row[:] for row in self.grid]
-		result = self.minimax(3, {'c':0, 'r':0}, test, True)
+		result = self.minimax(0, 1, {'c':0, 'r':0}, test, True)
 		row = result['coords']['r']
 		col = result['coords']['c']
 		print('Score: ' + str(result['score']))
@@ -400,7 +400,7 @@ class Gameboard():
 		self.ai_click({'coords':{'c':col, 'r':row}, 'tag':tag})
 		self.play = True
 
-		self.print_grid(self.target_grid)
+		#self.print_grid(self.target_grid)
 
 		# Check for a win. Putting it here so that self.play will be set to False
 		if (self.check_xinarow(5, self.grid, {'r':row, 'c':col}, 'b' if self.player=='w' else 'w') >= 0):
@@ -434,7 +434,7 @@ class Gameboard():
 				except IndexError:
 					pass
 
-	def minimax(self, depth, coords, grid, do_max):
+	def minimax(self, depth, max_depth, coords, grid, do_max):
 		"""
 		Minimax function. Returns the best (min or max) score as well as
 		the coordinates of the placement.
@@ -444,19 +444,19 @@ class Gameboard():
 		best = float('-inf') if do_max else float('inf')
 		middle= math.floor(self.board_len/2)
 		best_coords = {'r':middle, 'c':middle}
-		if depth > 0:
+		if depth <= max_depth:
 			for i in range(self.board_len):
 				for j in range(self.board_len):
 					if grid[i][j]=='-' and self.target_grid[i][j]=='X':
 						test = [row[:] for row in grid]
 						test[i][j] = ai if do_max else human
 
-						result = self.minimax(depth-1, {'c':i, 'r':j}, test, not do_max)
+						result = self.minimax(depth+1, max_depth, {'c':i, 'r':j}, test, not do_max)
 						score = result['score']
 						# Updating best scores based on min/maxing.
 						if do_max and score > best:
 							best = score
-							print(str(result['coords']['c']) + " " + str(result['coords']['r']) + " " + str(score))
+							#print(str(result['coords']['c']) + " " + str(result['coords']['r']) + " " + str(score))
 							best_coords = {'r':j, 'c':i}
 						if not do_max and score < best:
 							best = score
@@ -481,48 +481,81 @@ class Gameboard():
 			# WIN 3: 2x3inarow 0 blocked
 			win_5inarow = self.check_xinarow(5, self.grid, {'r':r, 'c':c}, me)
 			if win_5inarow>=0:
-				result['score'] = 10000
-				return result
+				# If win is next turn, it is the highest priority
+				if depth==1:
+					result['score'] = 10000
+					return result
+				else:
+					score += 7000 * (1/depth)
+				
 			block_5inarow = self.check_xinarow(5, self.grid, {'r':r, 'c':c}, you)
 			if block_5inarow>=0:
-				result['score'] = 9999
-				return result
+				if depth==1:
+					result['score'] = 9999
+					return result
+				else:
+					result['score'] = 6500 * (1/depth)
+					return result
 
 			win_2x4inarow = self.check_2x4inarow(self.grid, {'r':r, 'c':c}, me)
 			if win_2x4inarow:
-				result['score'] = 9998
-				return result
+				if depth==1:
+					result['score'] = 9998
+					return result
+				else:
+					score += 6000 * (1/depth)
 			block_2x4inarow = self.check_2x4inarow(self.grid, {'r':r, 'c':c}, you)
 			if block_2x4inarow:
-				result['score'] = 9997
-				return result
+				if depth==1:
+					result['score'] = 9997
+					return result
+				else:
+					score += 6000 * (1/depth)
 
 			win_4inarow = self.check_xinarow(4, self.grid, {'r':r, 'c':c}, me)
 			if win_4inarow==0:
-				result['score'] = 9996
-				return result
+				if depth==1:
+					result['score'] = 9996
+					return result
+				else:
+					score += 5500 * (1/depth)
 			block_4inarow = self.check_xinarow(4, self.grid, {'r':r, 'c':c}, you)
 			if block_4inarow==0:
-				result['score'] = 9995
-				return result
+				if depth==1:
+					result['score'] = 9995
+					return result
+				else:
+					score += 5000 * (1/depth)
 
 			win_3and4inarow = self.check_3and4inarow(self.grid, {'r':r, 'c':c}, me)
 			if win_3and4inarow:
-				result['score'] = 9994
-				return result
+				if depth==1:
+					result['score'] = 9994
+					return result
+				else:
+					score += 4500 * (1/depth)
 			block_3and4inarow = self.check_3and4inarow(self.grid, {'r':r, 'c':c}, you)
 			if block_3and4inarow:
-				result['score'] = 9993
-				return result
+				if depth==1:
+					result['score'] = 9993
+					return result
+				else:
+					score += 4000 * (1/depth)
 
 			win_2x3inarow = self.check_2x3inarow(self.grid, {'r':r, 'c':c}, me)
 			if win_2x3inarow:
-				result['score'] = 9992
-				return result
+				if depth==1:
+					result['score'] = 9992
+					return result
+				else:
+					score += 3500 * (1/depth)
 			block_2x3inarow = self.check_2x3inarow(self.grid, {'r':r, 'c':c}, you)
 			if block_2x3inarow:
-				result['score'] = 9991
-				return result
+				if depth==1:
+					result['score'] = 9991
+					return result
+				else:
+					score += 3000 * (1/depth)
 
 			# If no return check each setup possiblity as well as their corresponding block
 			# opportunity and sum them.
