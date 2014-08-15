@@ -91,7 +91,6 @@ class Gameboard():
 		Toggles between black and white player tiles.
 		If AI is on, it will play right after you play.
 		"""
-		# Either it's your turn and AI isn't moving, or it isn't your turn and AI is moving.
 		if self.play:
 			size = self.piece_size
 			ts = self.tile_size
@@ -105,11 +104,10 @@ class Gameboard():
 			else:
 				self.board.create_oval(c*ts+size, r*ts+size, c*ts+ts-size, r*ts+ts-size, fill='black', outline='black', tag='b')				
 				self.header.config(text='White\'s turn...')
-			self.grid[c][r] = self.player
+			self.grid[r][c] = self.player
 			self.player = 'w' if self.player == 'b' else 'b'
 			# Unbind clicked board with parameters passed in.
 			self.board.tag_unbind(tag, '<Button-1>')
-
 			# Check for a win
 			if (self.check_xinarow(5, self.grid, {'r':r, 'c':c}, 'b' if self.player=='w' else 'w') >= 0):
 				self.end_game()
@@ -142,7 +140,7 @@ class Gameboard():
 			self.board.create_oval(c*ts+size, r*ts+size, c*ts+ts-size, r*ts+ts-size, fill='black', outline='black', tag='b')
 			self.header.config(text='White\'s turn...')
 		self.add_target(self.target_grid, {'r':r, 'c':c})
-		self.grid[c][r] = self.player
+		self.grid[r][c] = self.player
 		self.player = 'w' if self.player == 'b' else 'b'
 		# Unbind clicked board with parameters passed in.
 		self.board.tag_unbind(tag, '<Button-1>')
@@ -269,8 +267,8 @@ class Gameboard():
 			try:
 				if c+i*mc<0 or r+i*mr<0:
 					break
-				if (grid[c+i*mc][r+i*mr] == p):
-					end_upper['c'], end_upper['r'] = c+i*mc+mc, r+i*mr+mr
+				if (grid[r+i*mr][c+i*mc] == p):
+					end_upper['r'], end_upper['c'] = r+i*mr+mr, c+i*mc+mc
 					count += 1
 				else:
 					break
@@ -282,8 +280,8 @@ class Gameboard():
 			try:
 				if c-i*mc<0 or r-i*mr<0:
 					break
-				if (grid[c-i*mc][r-i*mr] == p):
-					end_lower['c'], end_lower['r'] = c-i*mc-mc, r-i*mr-mr
+				if (grid[r-i*mr][c-i*mc] == p):
+					end_lower['r'], end_lower['c'] = r-i*mr-mr, c-i*mc-mc
 					count += 1
 				else:
 					break
@@ -298,18 +296,18 @@ class Gameboard():
 		"""
 		Returns the number of blockages based on end points of x in a row.
 		"""
-		block = 0;
+		block = 0
 		try:
 			if upper['c'] < 0 or upper['r'] < 0:
 				block += 1
-			elif self.grid[upper['c']][upper['r']] != '-':
+			elif self.grid[upper['r']][upper['c']] != '-':
 				block += 1
 		except IndexError:
 			pass
 		try:
 			if lower['c'] < 0 or lower['r'] < 0:
 				block += 1
-			elif self.grid[lower['c']][lower['r']] != '-':
+			elif self.grid[lower['r']][lower['c']] != '-':
 				block += 1
 		except IndexError:
 			pass
@@ -391,7 +389,7 @@ class Gameboard():
 
 		# Minimax algorithm.
 		test = [row[:] for row in self.grid]
-		result = self.minimax(0, 3, {'c':0, 'r':0}, test, True)
+		result = self.minimax(3, {'c':0, 'r':0}, test, True)
 		row = result['coords']['r']
 		col = result['coords']['c']
 		print('Score: ' + str(result['score']))
@@ -430,11 +428,11 @@ class Gameboard():
 			for j in range(-1, 2):
 				try:
 					if (c+i>=0 and r+j>=0):
-						grid[c+i][r+j] = 'X'
+						grid[r+j][c+i] = 'X'
 				except IndexError:
 					pass
 
-	def minimax(self, depth, max_depth, coords, grid, do_max):
+	def minimax(self, depth, coords, grid, do_max):
 		"""
 		Minimax function. Returns the best (min or max) score as well as
 		the coordinates of the placement.
@@ -444,117 +442,110 @@ class Gameboard():
 		best = float('-inf') if do_max else float('inf')
 		middle= math.floor(self.board_len/2)
 		best_coords = {'r':middle, 'c':middle}
-		if depth <= max_depth:
+		if depth > 0:
 			for i in range(self.board_len):
 				for j in range(self.board_len):
 					if grid[i][j]=='-' and self.target_grid[i][j]=='X':
 						test = [row[:] for row in grid]
 						test[i][j] = ai if do_max else human
 
-						result = self.minimax(depth+1, max_depth, {'c':i, 'r':j}, test, not do_max)
+						"""
+						r = coords['r']
+						c = coords['c']
+						score = 0
+						result = {'score':score, 'coords':{'c':c, 'r':r}}
+						me = human if do_max else ai
+						you = ai if do_max else human
+						win_5inarow = self.check_xinarow(5, grid, {'r':r, 'c':c}, me)
+						if win_5inarow>=0:
+							result['score'] = 7000 * (1/depth)
+							return result
+							
+						block_5inarow = self.check_xinarow(5, grid, {'r':r, 'c':c}, you)
+						if block_5inarow>=0:
+							result['score'] = -6500 * (1/depth)
+							return result"""
+
+						result = self.minimax(depth-1, {'c':j, 'r':i}, test, not do_max)
 						score = result['score']
 						# Updating best scores based on min/maxing.
 						if do_max and score > best:
 							best = score
 							#print(str(result['coords']['c']) + " " + str(result['coords']['r']) + " " + str(score))
-							best_coords = {'r':j, 'c':i}
+							best_coords = {'r':i, 'c':j}
 						if not do_max and score < best:
 							best = score
-							best_coords = {'r':j, 'c':i}
+							best_coords = {'r':i, 'c':j}
+
 		else:
-			r = coords['r']
-			c = coords['c']
+			row = coords['r']
+			col = coords['c']
 			# If at leaf, return evaluation of score.
 			score = 0;		
-			result = {'score':score, 'coords':{'c':c, 'r':r}}
-			check = [row[:] for row in grid]
+			result = {'score':score, 'coords':{'c':col, 'r':row}}
 			# 'me' represents the person playing the piece. 'you' represents their opponent.
 			# This is based on do_max because if this node is maximizing, the parent node
 			# will be minimizing. Since the minimizer is the human, the logic is that way.
-			me = human if do_max else ai
-			you = ai if do_max else human
 
-			win_5inarow = self.check_xinarow(5, grid, {'r':r, 'c':c}, me)
-			if win_5inarow>=0:
-				# If win is next turn, it is the highest priority
-				score += 10000
-				return score			
-			block_5inarow = self.check_xinarow(5, grid, {'r':r, 'c':c}, you)
-			if block_5inarow>=0:
-				score += -9000
-				return score
+			for r in range(len(grid)):
+				for c in range(len(grid[r])):
+					if grid[r][c]!='-':
+						m = 1 if grid[r][c]==ai else -1
+						dec = 0 if m==1 else -1
 
-			win_2x4inarow = self.check_2x4inarow(grid, {'r':r, 'c':c}, me)
-			if win_2x4inarow:
-				score += 8000
-				return score				
-			block_2x4inarow = self.check_2x4inarow(grid, {'r':r, 'c':c}, you)
-			if block_2x4inarow:
-				score += -7000
-				return score
+						win_5inarow = self.check_xinarow(5, grid, {'r':r, 'c':c}, grid[r][c])
+						if win_5inarow>=0:
+							print("5: " +str(r) + " " + str(c))
+							print(grid[r][c])
+							print(m)
+							self.print_grid(grid)
+							result['score'] = 10000*m-dec
+							return result
 
-			win_4inarow = self.check_xinarow(4, grid, {'r':r, 'c':c}, me)
-			if win_4inarow==0:
-				score += 6000
-				return score
-			block_4inarow = self.check_xinarow(4, grid, {'r':r, 'c':c}, you)
-			if block_4inarow==0:
-				score += -5000
-				return score
-				
-			win_3and4inarow = self.check_3and4inarow(grid, {'r':r, 'c':c}, me)
-			if win_3and4inarow:
-				score += 4000
-				return score				
-			block_3and4inarow = self.check_3and4inarow(grid, {'r':r, 'c':c}, you)
-			if block_3and4inarow:
-				score += -3000
-				return score
-				
-			win_2x3inarow = self.check_2x3inarow(grid, {'r':r, 'c':c}, me)
-			if win_2x3inarow:
-				score += 2000
-				return score				
-			block_2x3inarow = self.check_2x3inarow(grid, {'r':r, 'c':c}, you)
-			if block_2x3inarow:
-				score += -1000
-				return score
+						win_2x4inarow = self.check_2x4inarow(grid, {'r':r, 'c':c}, grid[r][c])
+						if win_2x4inarow:
+							result['score'] = 9998*m-dec
+							return result
 
-			# If no return check each setup possiblity as well as their corresponding block
-			# opportunity and sum them.
-			set_4inarow = self.check_xinarow(4, grid, {'r':r, 'c':c}, me)
-			if set_4inarow==1:
-				score += 4
-			block_set_4inarow = self.check_xinarow(4, grid, {'r':r, 'c':c}, you)
-			if block_set_4inarow==1:
-				score += 5
+						win_4inarow = self.check_xinarow(4, grid, {'r':r, 'c':c}, grid[r][c])
+						if win_4inarow==0:
+							print("4: " +str(r) + " " + str(c))
+							print(grid[r][c])
+							print(m)
+							self.print_grid(grid)
+							result['score'] = 9996*m-dec
+							return result
 
-			set_3inarow = self.check_xinarow(3, grid, {'r':r, 'c':c}, me)
-			if set_3inarow==0:
-				score += 10
-			elif set_3inarow==1:
-				score += 4
-			block_set_3inarow = self.check_xinarow(3, grid, {'r':r, 'c':c}, you)
-			if block_set_3inarow==0:
-				score += 8
-			elif block_set_3inarow==1:
-				score += 3
+						win_3and4inarow = self.check_3and4inarow(grid, {'r':r, 'c':c}, grid[r][c])
+						if win_3and4inarow:
+							result['score'] = 9994*m-dec
+							return result
 
-			set_2inarow = self.check_xinarow(2, grid, {'r':r, 'c':c}, me)
-			if set_2inarow==0:
-				score += 2
-			elif set_2inarow==1:
-				score += 1
-			block_set_2inarow = self.check_xinarow(2, grid, {'r':r, 'c':c}, you)
-			if block_set_2inarow==0:
-				score += 2
-			elif block_set_2inarow==1:
-				score += 0.5
+						win_2x3inarow = self.check_2x3inarow(grid, {'r':r, 'c':c}, grid[r][c])
+						if win_2x3inarow:
+							result['score'] = 9992*m-dec
+							return result
+
+						# If no return check each setup possiblity as well as their corresponding block
+						# opportunity and sum them.
+						set_4inarow = self.check_xinarow(4, grid, {'r':r, 'c':c}, grid[r][c])
+						if set_4inarow==1:
+							score += 4*m-dec
+
+						set_3inarow = self.check_xinarow(3, grid, {'r':r, 'c':c}, grid[r][c])
+						if set_3inarow==0:
+							score += 10*m-dec
+						elif set_3inarow==1:
+							score += 4*m-dec
+
+						set_2inarow = self.check_xinarow(2, grid, {'r':r, 'c':c}, grid[r][c])
+						if set_2inarow==0:
+							score += 2*m-dec
+						elif set_2inarow==1:
+							score += 1*m-dec
 
 			result['score'] = score
-
 			return result
-			
 		return {'score':best, 'coords':best_coords}
 
 	def print_grid(self, grid):
@@ -562,9 +553,13 @@ class Gameboard():
 		Used for testing. Prints grid contents for checking augmentation.
 		""" 
 		for i in range(len(grid)):
+			a = i if i>=10 else str(i)+" "
+			print(str(a) + " ", end="")
+		print("\n")
+		for i in range(len(grid)):
 			for j in range(len(grid[i])):
-				print(grid[i][j] + " ", end="")
-			print("\n") 
+				print(grid[i][j] + "  ", end="")
+			print(str(i) + "\n") 
 
 class Node():
 	def __init__(self, x, y):
