@@ -389,7 +389,7 @@ class Gameboard():
 
 		# Minimax algorithm.
 		test = [row[:] for row in self.grid]
-		result = self.minimax(3, {'c':0, 'r':0}, test, True)
+		result = self.minimax(3, {'c':0, 'r':0}, test, True, {'a':float('-inf'), 'b':float('inf')})
 		row = result['coords']['r']
 		col = result['coords']['c']
 		print('Score: ' + str(result['score']))
@@ -432,7 +432,7 @@ class Gameboard():
 				except IndexError:
 					pass
 
-	def minimax(self, depth, coords, grid, do_max):
+	def minimax(self, depth, coords, grid, do_max, ab):
 		"""
 		Minimax function. Returns the best (min or max) score as well as
 		the coordinates of the placement.
@@ -442,6 +442,11 @@ class Gameboard():
 		best = float('-inf') if do_max else float('inf')
 		middle= math.floor(self.board_len/2)
 		best_coords = {'r':middle, 'c':middle}
+
+		# alpha beta
+		a = ab['a']
+		b = ab['b']
+		prune = False
 		if depth > 0:
 			for i in range(self.board_len):
 				for j in range(self.board_len):
@@ -466,16 +471,27 @@ class Gameboard():
 							result['score'] = -6500 * (1/depth)
 							return result"""
 
-						result = self.minimax(depth-1, {'c':j, 'r':i}, test, not do_max)
+						result = self.minimax(depth-1, {'c':j, 'r':i}, test, not do_max, ab)
 						score = result['score']
 						# Updating best scores based on min/maxing.
 						if do_max and score > best:
 							best = score
 							#print(str(result['coords']['c']) + " " + str(result['coords']['r']) + " " + str(score))
 							best_coords = {'r':i, 'c':j}
+							if best>b:
+								prune=True
+							a=best
 						if not do_max and score < best:
 							best = score
 							best_coords = {'r':i, 'c':j}
+							if best<a:
+								prune=True
+							b=best
+						if prune:
+							print('pruned at depth ' + str(depth))
+							break
+				if prune:
+					break
 
 		else:
 			row = coords['r']
@@ -495,10 +511,10 @@ class Gameboard():
 
 						win_5inarow = self.check_xinarow(5, grid, {'r':r, 'c':c}, grid[r][c])
 						if win_5inarow>=0:
-							print("5: " +str(r) + " " + str(c))
-							print(grid[r][c])
-							print(m)
-							self.print_grid(grid)
+							# print("5: " +str(r) + " " + str(c))
+							# print(grid[r][c])
+							# print(m)
+							# self.print_grid(grid)
 							result['score'] = 10000*m-dec
 							return result
 
@@ -509,10 +525,10 @@ class Gameboard():
 
 						win_4inarow = self.check_xinarow(4, grid, {'r':r, 'c':c}, grid[r][c])
 						if win_4inarow==0:
-							print("4: " +str(r) + " " + str(c))
-							print(grid[r][c])
-							print(m)
-							self.print_grid(grid)
+							# print("4: " +str(r) + " " + str(c))
+							# print(grid[r][c])
+							# print(m)
+							# self.print_grid(grid)
 							result['score'] = 9996*m-dec
 							return result
 
